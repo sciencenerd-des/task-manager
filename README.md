@@ -113,18 +113,48 @@ Visit http://localhost:3000
 
 ## Deployment
 
-### Frontend (Vercel)
+### Automated CI/CD (GitHub Actions)
 
-1. Push to GitHub
-2. Import to Vercel
-3. Add environment variables
-4. Deploy
+This project includes a CI/CD pipeline that:
+- Runs linting and type checking on all PRs
+- Deploys preview environments for PRs
+- Deploys to production on merge to main
 
-### Backend (Convex)
+**Required GitHub Secrets:**
+- `CONVEX_DEPLOY_KEY` - From Convex Dashboard → Settings → Deploy Keys
+- `NEXT_PUBLIC_CONVEX_URL` - Your Convex deployment URL
+
+### Manual Deployment
+
+#### 1. Deploy Convex Backend
 
 ```bash
 npx convex deploy
 ```
+
+#### 2. Deploy to Vercel
+
+1. Push to GitHub
+2. Import to Vercel
+3. Add environment variables:
+   - `CONVEX_DEPLOY_KEY`
+   - `NEXT_PUBLIC_CONVEX_URL`
+   - `WORKOS_CLIENT_ID`
+   - `WORKOS_API_KEY`
+   - `WORKOS_COOKIE_PASSWORD`
+   - `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
+4. Deploy (build command is preconfigured in `vercel.json`)
+
+### Environment Variables for Production
+
+| Variable | Description |
+|----------|-------------|
+| `CONVEX_DEPLOY_KEY` | Deploy key from Convex dashboard |
+| `NEXT_PUBLIC_CONVEX_URL` | Your Convex deployment URL |
+| `WORKOS_CLIENT_ID` | WorkOS client ID |
+| `WORKOS_API_KEY` | WorkOS API key |
+| `WORKOS_COOKIE_PASSWORD` | 32+ char secret for session cookies |
+| `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Production callback URL |
 
 ## License
 

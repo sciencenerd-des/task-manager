@@ -6,9 +6,14 @@
     "dev": "npm run dev:frontend",
     "dev:frontend": "next dev",
     "dev:backend": "convex dev",
-    "build": "next build",
+    "predev": "convex dev --once",
+    "prebuild": "convex deploy --cmd 'npm run build:next'",
+    "build": "convex deploy --cmd 'npm run build:next'",
+    "build:next": "next build",
+    "build:vercel": "npx convex deploy --cmd 'npm run build:next'",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^14.2.26",

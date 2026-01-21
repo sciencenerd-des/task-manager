@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npx convex deploy --cmd 'npm run build:next'",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
+}
