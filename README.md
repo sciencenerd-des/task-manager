@@ -175,6 +175,25 @@ npx convex deploy
 | `WORKOS_COOKIE_PASSWORD` | 32+ char secret for session cookies |
 | `NEXT_PUBLIC_WORKOS_REDIRECT_URI` | Production callback URL |
 
+## Continuous integration
+
+CI (`.github/workflows/ci.yml`) runs **lint + unit tests on every push** with no
+secrets required. The Convex **typecheck/build/deploy** jobs are opt-in, because
+they push functions to your Convex deployment and therefore need it fully
+configured. To enable them:
+
+1. Set the WorkOS env vars **on the Convex deployment** (not just in GitHub):
+   ```bash
+   npx convex env set WORKOS_CLIENT_ID <id>
+   npx convex env set WORKOS_API_KEY <key>
+   npx convex env set WORKOS_WEBHOOK_SECRET <secret>
+   ```
+2. Add repo **secrets** `CONVEX_DEPLOY_KEY` and `NEXT_PUBLIC_CONVEX_URL`
+   (Settings → Secrets and variables → Actions).
+3. Add a repo **variable** `CONVEX_DEPLOY` = `true` (same page, Variables tab).
+
+Until step 3, the deploy-dependent jobs are skipped and CI stays green on tests.
+
 ## License
 
 MIT
