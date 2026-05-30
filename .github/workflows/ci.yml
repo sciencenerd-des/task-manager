@@ -6,106 +6,73 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-
 jobs:
-  lint-and-typecheck:
-    name: Lint & Type Check
+  # Always runs — no secrets required. Validates the code offline.
+  test:
+    name: Lint & Unit Tests
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Convex types
-        run: npx convex codegen
-
-      - name: Run ESLint
+      - run: npm ci
+      - name: Lint
         run: npm run lint
+      - name: Unit tests
+        run: npm test
 
-      - name: Run TypeScript check
-        run: npm run typecheck
-
-  build:
-    name: Build
+  # Detects whether Convex deploy credentials are configured, so the
+  # deployment-dependent jobs below can be skipped (not failed) without them.
+  check-secrets:
+    name: Check deploy config
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
-
+    outputs:
+      has_convex: ${{ steps.check.outputs.has }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - id: check
+        run: echo "has=${{ secrets.CONVEX_DEPLOY_KEY != '' }}" >> "$GITHUB_OUTPUT"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+  # Convex codegen + typecheck + Next.js build. Requires a deployment, so it
+  # runs only when CONVEX_DEPLOY_KEY is set in the repo secrets.
+  convex:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+    needs: check-secrets
+    if: needs.check-secrets.outputs.has_convex == 'true'
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
+      - run: npm ci
       - name: Generate Convex types
         run: npx convex codegen
-
+      - name: TypeScript check
+        run: npm run typecheck
       - name: Build Next.js
         run: npm run build:next
         env:
           NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
 
-  deploy-preview:
-    name: Deploy Preview
+  # Deploy to Convex production on pushes to main, when credentials exist.
+  deploy:
+    name: Deploy (Convex production)
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'pull_request'
-
+    needs: [check-secrets, convex]
+    if: needs.check-secrets.outputs.has_convex == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Deploy to Convex (Preview)
-        run: npx convex deploy --preview "${{ github.head_ref }}"
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-
-  deploy-production:
-    name: Deploy Production
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Deploy to Convex (Production)
+      - run: npm ci
+      - name: Deploy to Convex
         run: npx convex deploy
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
