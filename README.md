@@ -18,6 +18,25 @@ A full-stack task management application with Kanban board, list view, and user 
 - Drag-and-drop task reordering
 - Task filtering by status and priority
 - Dashboard with task summaries and overdue tasks
+- **AI-assisted task entry** — describe a task in plain English (e.g.
+  *"urgent: submit the GST return by friday"*) and the form auto-fills title,
+  priority, and due date for review before you create it.
+
+### AI-assisted task entry
+
+The "Describe it in plain English" box in the create-task dialog calls a Convex
+action (`tasks.parseText`) that turns a natural-language note into structured
+fields. It uses the **OpenAI API** when `OPENAI_API_KEY` is configured in your
+Convex environment, and falls back to a deterministic local parser when it isn't —
+so the feature works with or without a key (just more cleverly with one). The
+parsed fields populate the form for you to review; nothing is created
+automatically. The local parser is pure and unit-tested (`npm test`).
+
+To enable the LLM path, set the key in your Convex deployment:
+
+```bash
+npx convex env set OPENAI_API_KEY sk-...
+```
 
 ## Getting Started
 

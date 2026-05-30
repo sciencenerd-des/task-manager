@@ -13,7 +13,8 @@
     "build:vercel": "npx convex deploy --cmd 'npm run build:next'",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "next": "^14.2.26",
@@ -54,6 +55,7 @@
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "eslint": "^8.56.0",
-    "eslint-config-next": "^14.2.26"
+    "eslint-config-next": "^14.2.26",
+    "vitest": "^1.6.0"
   }
 }

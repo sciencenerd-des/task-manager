@@ -1,6 +1,7 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { authKit } from "./auth";
+import { parseTaskText, type ParsedTask, type TaskPriority } from "./lib/parseTask";
 
 const taskStatusValues = v.union(
   v.literal("todo"),
@@ -311,3 +312,78 @@ export const remove = mutation({
     return args.taskId;
   },
 });
+
+// Parse a natural-language description into structured task fields.
+//
+// Uses the OpenAI API when OPENAI_API_KEY is configured in the Convex
+// environment; otherwise falls back to a deterministic local parser, so the
+// feature works with no key (just less cleverly). Returns suggested fields for
+// the user to review before creating the task — it never writes to the database.
+export const parseText = action({
+  args: { text: v.string() },
+  handler: async (_ctx, { text }): Promise<ParsedTask> => {
+    const trimmed = text.trim();
+    if (!trimmed) return { title: "", priority: "medium" };
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return parseTaskText(trimmed);
+
+    try {
+      return await parseWithOpenAI(trimmed, apiKey);
+    } catch (err) {
+      console.error("OpenAI task parse failed, using local fallback:", err);
+      return parseTaskText(trimmed);
+    }
+  },
+});
+
+const PRIORITIES: ReadonlyArray<TaskPriority> = ["low", "medium", "high", "urgent"];
+
+async function parseWithOpenAI(text: string, apiKey: string): Promise<ParsedTask> {
+  const today = new Date().toISOString().slice(0, 10);
+  const system =
+    "You convert a short natural-language note into a task. Respond with JSON " +
+    "only, matching: {\"title\": string, \"description\": string|null, " +
+    "\"priority\": \"low\"|\"medium\"|\"high\"|\"urgent\", \"dueDate\": string|null}. " +
+    `Today is ${today}. Resolve relative dates (e.g. \"tomorrow\", \"next friday\") ` +
+    "to an absolute YYYY-MM-DD in dueDate, or null if none is implied. Keep the " +
+    "title concise and free of priority/date words. Use description only for extra detail.";
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: text },
+      ],
+    }),
+  });
+
+  if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}`);
+
+  const data = await res.json();
+  const raw = JSON.parse(data.choices?.[0]?.message?.content ?? "{}");
+
+  const priority: TaskPriority = PRIORITIES.includes(raw.priority)
+    ? raw.priority
+    : "medium";
+  const title =
+    typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : text;
+  const description =
+    typeof raw.description === "string" && raw.description.trim()
+      ? raw.description.trim()
+      : undefined;
+  let dueDate: number | undefined;
+  if (typeof raw.dueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.dueDate)) {
+    const [y, m, d] = raw.dueDate.split("-").map(Number);
+    dueDate = new Date(y, m - 1, d).getTime();
+  }
+
+  return { title, description, priority, dueDate };
+}
