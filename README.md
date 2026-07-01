@@ -197,3 +197,29 @@ Until step 3, the deploy-dependent jobs are skipped and CI stays green on tests.
 ## License
 
 MIT
+
+---
+
+## Developer experience angle
+
+This is a production-style full-stack app demonstrating how to add a small, reviewable OpenAI feature to an existing developer workflow.
+
+## AI-assisted task parsing
+
+The task creation dialog includes a natural-language input. A user can write:
+
+> urgent: submit the GST return by Friday
+
+The Convex action parses that text into structured task fields for review before creation. The app keeps the user in control: AI suggestions are reviewed before the task is created.
+
+## Why this design
+
+- The model assists, but does not silently mutate data.
+- The app has a deterministic fallback when no OpenAI key is configured.
+- Structured fields make the result inspectable and testable.
+
+## Documentation
+
+- [AI task parser](docs/ai-task-parser.md)
+- [Deployment guide](docs/deployment.md)
+
