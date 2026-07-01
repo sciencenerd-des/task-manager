@@ -63,4 +63,28 @@ describe("parseTaskText", () => {
     const r = parseTaskText("tomorrow", NOW);
     expect(r.title).toBe("Tomorrow");
   });
+
+  it("handles empty input gracefully", () => {
+    const r = parseTaskText("", NOW);
+    expect(r.title).toBe("");
+    expect(r.priority).toBe("medium");
+    expect(r.dueDate).toBeUndefined();
+  });
+
+  it("handles whitespace-only input", () => {
+    const r = parseTaskText("   ", NOW);
+    expect(r.title.trim()).toBe("");
+    expect(r.priority).toBe("medium");
+  });
+
+  it("preserves capitalization in title", () => {
+    const r = parseTaskText("urgent: Review Q4 Budget", NOW);
+    expect(r.title).toBe("Review Q4 Budget");
+  });
+
+  it("handles multiple weekday references", () => {
+    const r = parseTaskText("Meet Monday, follow up Friday", NOW);
+    // Should pick the first weekday mentioned
+    expect(ymd(r.dueDate)).toBe("2026-06-15"); // Next Monday
+  });
 });
