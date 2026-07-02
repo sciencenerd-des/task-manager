@@ -8,8 +8,10 @@ on:
 
 jobs:
   # Always runs — no secrets required. Validates the code offline.
+  # Typecheck runs against the committed convex/_generated types, so it needs
+  # no Convex deployment or codegen step.
   test:
-    name: Lint & Unit Tests
+    name: Lint, Typecheck & Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +22,8 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      - name: TypeScript check
+        run: npm run typecheck
       - name: Unit tests
         run: npm test
 
